@@ -4,10 +4,7 @@ A simulated industrial tank-filling process, controlled by a Siemens S7-1200 (TI
 
 ## Demo
 
-![Demo GIF](media/demo.gif)
-*(replace with your recording: full cycle — start, fill to setpoint, overshoot, discharge correction)*
-
-Watch table trace (`sequence`, `pv_actual`, `PID_output`, `PID_output2`) — screenshot showing live regulation:
+watch the Demo video on https://github.com/makke-awouda/plc-automation-projects/releases/download/V1.0/Demo.mp4
 
 ![Watch table trace](media/watch-table.png)
 
