@@ -6,7 +6,7 @@ A simulated industrial tank-filling process, controlled by a Siemens S7-1200 (TI
 
 watch the Demo video on https://github.com/makke-awouda/plc-automation-projects/releases/download/V1.0/Demo.mp4
 
-![Watch table trace](media/watch-table.png)
+
 
 ## What This Demonstrates
 
