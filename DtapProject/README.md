@@ -6,8 +6,7 @@ A Unity-based industrial training simulator built at Simulyn, replicating a Siem
 
 ## Demo
 
-![Demo GIF](media/demo.gif)
-*(replace with your recording: panel wiring validation, commissioning checklist walkthrough, safe power-up sequence)*
+Watch the Demo video on the repo release or from the link https://github.com/makke-awouda/plc-automation-projects/releases/download/V1.0/Dtap_Demo.mp4
 
 ## My Role
 
