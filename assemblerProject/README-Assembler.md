@@ -4,8 +4,7 @@ A pick-and-place assembly cell simulated in Factory IO, controlled by Siemens S7
 
 ## Demo
 
-![Demo GIF](media/demo.gif)
-*(replace with your recording: full cycle — bases and lids arriving, clamp, gripper transfer, eject, loop)*
+Watch the demo video on repo release or from the link https://github.com/makke-awouda/plc-automation-projects/releases/download/V1.0/Assembler_Demo.mp4
 
 ## What This Demonstrates
 
