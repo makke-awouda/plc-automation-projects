@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "express": "^5.2.1",
+    "node-opcua-client": "^2.175.2"
+  }
+}

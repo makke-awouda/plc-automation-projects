@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tank Filling — Live Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: #0a0a0a;
+    color: #e5e5e5;
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    padding: 20px 24px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;            /* no page scroll */
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+    flex: 0 0 auto;
+  }
+  h1 { font-size: 20px; font-weight: 600; margin: 0; }
+  .status {
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: #222;
+    color: #888;
+  }
+  .status.live { background: #14301c; color: #4ade80; }
+  .updated { font-size: 12px; color: #666; margin-left: auto; }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+    flex: 0 0 auto;
+  }
+  .stat {
+    border: 1px solid #262626;
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .stat-label { font-size: 12px; color: #999; margin-bottom: 4px; }
+  .stat-value { font-size: 20px; font-family: monospace; }
+
+  /* Charts fill all remaining height and sit side by side */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    flex: 1 1 auto;
+    min-height: 0;               /* critical: lets children shrink to fit */
+  }
+  .panel {
+    border: 1px solid #262626;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;               /* critical: lets the canvas shrink */
+  }
+  .chart-title { font-size: 14px; color: #999; margin-bottom: 10px; flex: 0 0 auto; }
+  .chart-wrap { position: relative; flex: 1 1 auto; min-height: 0; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>Tank Filling — Live Dashboard</h1>
+    <span id="status" class="status">Connecting...</span>
+    <span id="updated" class="updated">Last updated: —</span>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat">
+      <div class="stat-label">Level (PV)</div>
+      <div id="pv" class="stat-value">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Setpoint (SP)</div>
+      <div id="sp" class="stat-value">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Fill Valve</div>
+      <div id="fillValve" class="stat-value">0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Discharge Valve</div>
+      <div id="dischargeValve" class="stat-value">0</div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="panel">
+      <div class="chart-title">Level vs Setpoint</div>
+      <div class="chart-wrap"><canvas id="levelChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="chart-title">Valve Outputs</div>
+      <div class="chart-wrap"><canvas id="valveChart"></canvas></div>
+    </div>
+  </div>
+
+  <script>
+    const MAX_POINTS = 120;
+
+    const commonOptions = {
+      responsive: true,
+      animation: false,
+      maintainAspectRatio: false,   // lets charts fill their container height
+      interaction: { intersect: false, mode: "index" },
+      scales: {
+        x: { ticks: { color: "#666", maxTicksLimit: 6 }, grid: { color: "#1a1a1a" } },
+        y: { ticks: { color: "#666" }, grid: { color: "#1a1a1a" } },
+      },
+      plugins: { legend: { labels: { color: "#aaa" } } },
+    };
+
+    const levelChart = new Chart(document.getElementById("levelChart"), {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Level (PV)", data: [],
+            borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.1)",
+            borderWidth: 2, pointRadius: 0, tension: 0.2, fill: true,
+          },
+          {
+            label: "Setpoint (SP)", data: [],
+            borderColor: "#eab308",
+            borderWidth: 2, borderDash: [5, 4], pointRadius: 0, tension: 0,
+          },
+        ],
+      },
+      options: {
+        ...commonOptions,
+        scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, min: 0, max: 300 } },
+      },
+    });
+
+    const valveChart = new Chart(document.getElementById("valveChart"), {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Fill Valve", data: [],
+            borderColor: "#22c55e", borderWidth: 2, pointRadius: 0, tension: 0.2,
+          },
+          {
+            label: "Discharge Valve", data: [],
+            borderColor: "#ef4444", borderWidth: 2, pointRadius: 0, tension: 0.2,
+          },
+        ],
+      },
+      options: { ...commonOptions },
+    });
+
+    function pushPoint(chart, label, values) {
+      chart.data.labels.push(label);
+      values.forEach((v, i) => chart.data.datasets[i].data.push(v));
+      if (chart.data.labels.length > MAX_POINTS) {
+        chart.data.labels.shift();
+        chart.data.datasets.forEach((ds) => ds.data.shift());
+      }
+      chart.update("none");
+    }
+
+    const source = new EventSource("/events");
+    const statusEl = document.getElementById("status");
+
+    source.onopen = () => { statusEl.textContent = "Live"; statusEl.classList.add("live"); };
+    source.onerror = () => { statusEl.textContent = "Disconnected"; statusEl.classList.remove("live"); };
+
+    source.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      const pv = data.pv_actual ?? 0;
+      const sp = data.pot_setpoint ?? 0;
+      const fill = data.fill_valve ?? 0;
+      const discharge = data.discharge_valve ?? 0;
+      const timeLabel = data.updatedAt ?? new Date().toLocaleTimeString();
+
+      document.getElementById("pv").textContent = pv.toFixed(1);
+      document.getElementById("sp").textContent = sp.toFixed(1);
+      document.getElementById("fillValve").textContent = fill;
+      document.getElementById("dischargeValve").textContent = discharge;
+      document.getElementById("updated").textContent = "Last updated: " + timeLabel;
+
+      pushPoint(levelChart, timeLabel, [pv, sp]);
+      pushPoint(valveChart, timeLabel, [fill, discharge]);
+    };
+  </script>
+</body>
+</html>
